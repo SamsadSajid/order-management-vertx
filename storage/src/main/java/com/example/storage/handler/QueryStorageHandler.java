@@ -12,12 +12,10 @@ public class QueryStorageHandler implements Handler<RoutingContext> {
 
 	@Override
 	public void handle(RoutingContext context) {
+
 		JsonObject jsonObject = context.getBodyAsJson();
 
-
 		context.vertx().eventBus().<JsonObject>request("store.data", jsonObject, reply -> {
-//			logger.info(reply.result().address());
-//			logger.info(reply.result().headers());
 			if (reply.succeeded()) {
 				logger.info(reply.result().body());
 				var success = reply.result().body().getBoolean("success");
@@ -26,6 +24,8 @@ public class QueryStorageHandler implements Handler<RoutingContext> {
 				} else {
 					context.response().setStatusCode(404).end("Something went wrong while saving data :(");
 				}
+			} else {
+				context.response().setStatusCode(404).end(reply.cause().getMessage());
 			}
 		});
 		logger.info("Executing here");

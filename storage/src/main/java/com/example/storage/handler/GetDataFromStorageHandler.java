@@ -1,6 +1,5 @@
 package com.example.storage.handler;
 
-import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
@@ -13,15 +12,18 @@ public class GetDataFromStorageHandler implements Handler<RoutingContext> {
 
 	@Override
 	public void handle(RoutingContext context) {
-		context.vertx().eventBus().<JsonObject>request("fetch.data", context.pathParam("key"), reply -> {
-			logger.info(reply);
+
+		var vertx = context.vertx();
+
+		JsonObject jsonObject = new JsonObject().put("key", context.pathParam("key"));
+
+		vertx.executeBlocking(promise -> vertx.eventBus().<JsonObject>request("fetch.data", jsonObject, reply -> {
 
 			if (reply.succeeded()) {
 				context.response().end(reply.result().body().encode());
 			} else {
 				context.response().setStatusCode(404).end(reply.cause().getMessage());
 			}
-		});
-		logger.info("executing here");
+		}));
 	}
 }

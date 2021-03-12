@@ -1,8 +1,6 @@
 package com.example.storage.verticle;
 
 import io.vertx.core.AbstractVerticle;
-import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import io.vertx.core.eventbus.Message;
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
@@ -10,8 +8,6 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.redis.client.*;
 
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
 
 public class RedisVerticle extends AbstractVerticle {
 
@@ -21,45 +17,45 @@ public class RedisVerticle extends AbstractVerticle {
 
 	@Override
 	public void start() {
-		Redis client = Redis.createClient(vertx);
+
+		Redis client = Redis.createClient(vertx, getRedisOptions());
 		redis = RedisAPI.api(client);
 
-		vertx.eventBus().consumer("store.data", this::save);
-		vertx.eventBus().consumer("fetch.data", this::get);
+		vertx.eventBus().consumer("store.data", this::saveData);
+		vertx.eventBus().consumer("fetch.data", this::getData);
 	}
 
-	private void save(Message<JsonObject> message) {
-		logger.info("put - " + message.body());
+	private RedisOptions getRedisOptions() {
+
+		return new RedisOptions()
+			.setConnectionString("redis://localhost:6379");
+	}
+
+	private void saveData(Message<JsonObject> message) {
+
+		logger.info("Saving to cache - " + message.body());
 		JsonObject msgBody = message.body();
 
-		Future<Response> responseFuture = redis
-			.set(Arrays.asList(msgBody.getString("key"), msgBody.getString("value")));
-
-		responseFuture.onSuccess(v -> {
-			JsonObject ack = new JsonObject()
-				.put("success", true)
-				.put("msg", "Stored data to redis successfully");
-
-			message.reply(ack);
-		});
-
-		responseFuture.onFailure(v -> {
-			message.fail(404, "Could not save value");
-		});
+		redis.set(Arrays.asList(msgBody.getString("key"), msgBody.getString("value")))
+			.onSuccess(v -> message.reply(new JsonObject().put("msg", "Stored data to redis successfully")))
+			.onFailure(v -> {
+				logger.error(v);
+				message.fail(404, "Could not save value");
+			});
 	}
 
-	private void get(Message<JsonObject> message) {
-		logger.info("get - " + message.body());
+	private void getData(Message<JsonObject> message) {
 
-		Future<Response> responseFuture = redis.get("nice");
+		logger.info("Fetching from cache - " + message.body());
 
-		responseFuture.onSuccess(v -> {
-			logger.info(v);
-			JsonObject ack = new JsonObject().put("msg", v.toString());
-			message.reply(ack);
-		});
-		responseFuture.onFailure(v -> {
-			message.fail(404, "No value exists with the key");
-		});
+		redis.get(message.body().getString("key"))
+			.onSuccess(v -> {
+				logger.info(v);
+				message.reply(new JsonObject().put("msg", v.toString()));
+			})
+			.onFailure(v -> {
+				logger.error(v);
+				message.fail(404, "No value exists with the key");
+			});
 	}
 }
