@@ -47,7 +47,7 @@ public class QueryStorageHandler implements Handler<RoutingContext> {
 		return Product.builder()
 			.name(jsonObject.getString("name"))
 			.price(jsonObject.getString("price"))
-			.quantity(jsonObject.getString("price"))
+			.quantity(jsonObject.getString("quantity"))
 			.build();
 	}
 }

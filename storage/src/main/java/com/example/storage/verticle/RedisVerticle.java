@@ -39,34 +39,6 @@ public class RedisVerticle extends AbstractVerticle {
 			.setConnectionString("redis://localhost:6379");
 	}
 
-//	private void saveData(Message<JsonObject> message) {
-//
-//		logger.info("Saving to cache - " + message.body());
-//		JsonObject msgBody = message.body();
-//
-//		redis.set(Arrays.asList(msgBody.getString("key"), msgBody.getString("value")))
-//			.onSuccess(v -> message.reply(new JsonObject().put("msg", "Stored data to redis successfully")))
-//			.onFailure(v -> {
-//				logger.error(v);
-//				message.fail(404, "Could not save value");
-//			});
-//	}
-//
-//	private void getData(Message<JsonObject> message) {
-//
-//		logger.info("Fetching from cache - " + message.body());
-//
-//		redis.get(message.body().getString("key"))
-//			.onSuccess(v -> {
-//				logger.info(v);
-//				message.reply(new JsonObject().put("msg", v.toString()));
-//			})
-//			.onFailure(v -> {
-//				logger.error(v);
-//				message.fail(404, "No value exists with the key");
-//			});
-//	}
-
 	private void saveData(Message<RedisData> message) {
 
 		logger.info("Saving to cache - " + message.body());
@@ -74,23 +46,25 @@ public class RedisVerticle extends AbstractVerticle {
 		// The following is event-loop
 		logger.info(Thread.currentThread().getName());
 
-		var key = message.body().getKey();
-		var data = processAndGetData(message.body().getObject());
+		vertx.executeBlocking(promise -> {
+			var key = message.body().getKey();
+			var data = processAndGetData(message.body().getObject());
 
-		if (data.isEmpty()) {
-			message.fail(404, "Something went wrong!");
-		} else {
-			redis
-				.hset(Arrays.asList(HASH, key, data.get()))
-				.onSuccess(v -> {
-					logger.info(v);
-					message.reply(new JsonObject().put("msg", "Stored data to redis successfully"));
-				})
-				.onFailure(v -> {
-					logger.error(v);
-					message.fail(404, "Something went wrong!");
-				});
-		}
+			if (data.isEmpty()) {
+				message.fail(404, "Something went wrong!");
+			} else {
+				redis
+					.hset(Arrays.asList(HASH, key, data.get()))
+					.onSuccess(v -> {
+						logger.info(v);
+						message.reply(new JsonObject().put("msg", "Stored data to redis successfully"));
+					})
+					.onFailure(v -> {
+						logger.error(v);
+						message.fail(404, "Something went wrong!");
+					});
+			}
+		});
 	}
 
 	private void getData(Message<RedisData> message) {

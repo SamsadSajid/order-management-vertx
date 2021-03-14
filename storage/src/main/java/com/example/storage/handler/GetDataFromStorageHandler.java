@@ -17,31 +17,31 @@ public class GetDataFromStorageHandler implements Handler<RoutingContext> {
 
 		var vertx = context.vertx();
 
-		var ja = RedisData.builder()
+		var data = RedisData.builder()
 			.key(context.pathParam("key"))
 			.object(Product.builder().build())
 			.build();
 
-		vertx.executeBlocking(promise -> vertx.eventBus().<RedisData>request("fetch.data", ja, reply -> {
+		vertx.executeBlocking(promise -> vertx.eventBus().<RedisData>request("fetch.data", data, reply -> {
 			logger.info("waiting for reply from fetch.data channel...");
 
 			int statusCode;
-			String data;
+			String res;
 
 			if (reply.succeeded()) {
 				statusCode = 200;
 				Product product = (Product) reply.result().body().getObject();
 
-				data = Json.encode(product);
+				res = Json.encode(product);
 			} else {
 				statusCode = 404;
-				data = Json.encode(reply.cause().getMessage());
+				res = Json.encode(reply.cause().getMessage());
 			}
 
 			context.response()
 				.setStatusCode(statusCode)
 				.putHeader("content-type", "application/json; charset=utf-8")
-				.end(data);
+				.end(res);
 		}));
 	}
 }

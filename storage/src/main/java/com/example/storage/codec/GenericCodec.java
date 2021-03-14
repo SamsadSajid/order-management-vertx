@@ -1,3 +1,8 @@
+/*
+ * Ref to the article: https://onemancrew.github.io/2018-01-10-vert.x-eventbus-generic-codec/
+ * */
+
+
 package com.example.storage.codec;
 
 import com.example.storage.handler.QueryStorageHandler;
@@ -39,13 +44,12 @@ public class GenericCodec<T> implements MessageCodec<T, T> {
 	public T decodeFromWire(int pos, Buffer buffer) {
 
 		// My custom message starting from this *position* of buffer
-		int _pos = pos;
 
 		// Length of JSON
-		int length = buffer.getInt(_pos);
+		int length = buffer.getInt(pos);
 
 		// Jump 4 because getInt() == 4 bytes
-		byte[] yourBytes = buffer.getBytes(_pos += 4, _pos += length);
+		byte[] yourBytes = buffer.getBytes(pos += 4, pos += length);
 		try (ByteArrayInputStream bis = new ByteArrayInputStream(yourBytes)) {
 			ObjectInputStream ois = new ObjectInputStream(bis);
 //			@SuppressWarnings("unchecked")
