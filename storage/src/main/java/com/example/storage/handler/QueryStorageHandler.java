@@ -1,10 +1,14 @@
 package com.example.storage.handler;
 
+import com.example.storage.model.Product;
+import com.example.storage.model.RedisData;
 import io.vertx.core.Handler;
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
+import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
+
 
 public class QueryStorageHandler implements Handler<RoutingContext> {
 
@@ -13,21 +17,37 @@ public class QueryStorageHandler implements Handler<RoutingContext> {
 	@Override
 	public void handle(RoutingContext context) {
 
-		JsonObject jsonObject = context.getBodyAsJson();
+		var vertx = context.vertx();
 
-		context.vertx().eventBus().<JsonObject>request("store.data", jsonObject, reply -> {
+		var product = getProduct(context.getBodyAsJson());
+
+		var data = RedisData.builder()
+			.key(product.getName())
+			.object(product)
+			.build();
+
+		vertx.executeBlocking(promise -> vertx.eventBus().<RedisData>request("store.data", data, reply -> {
+			int statusCode;
+			String res;
+
 			if (reply.succeeded()) {
-				logger.info(reply.result().body());
-				var success = reply.result().body().getBoolean("success");
-				if (success) {
-					context.response().end(reply.result().body().getString("msg"));
-				} else {
-					context.response().setStatusCode(404).end("Something went wrong while saving data :(");
-				}
+				statusCode = 200;
+				res = Json.encode(reply.result().body());
 			} else {
-				context.response().setStatusCode(404).end(reply.cause().getMessage());
+				statusCode = 404;
+				res = Json.encode(reply.cause().getMessage());
 			}
-		});
-		logger.info("Executing here");
+
+			context.response().setStatusCode(statusCode).end(res);
+		}));
+	}
+
+	Product getProduct(JsonObject jsonObject) {
+
+		return Product.builder()
+			.name(jsonObject.getString("name"))
+			.price(jsonObject.getString("price"))
+			.quantity(jsonObject.getString("price"))
+			.build();
 	}
 }

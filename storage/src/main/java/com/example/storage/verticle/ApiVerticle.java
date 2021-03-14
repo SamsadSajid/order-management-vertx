@@ -1,15 +1,12 @@
 package com.example.storage.verticle;
 
+import com.example.storage.codec.GenericCodec;
 import com.example.storage.handler.GetDataFromStorageHandler;
 import com.example.storage.handler.QueryStorageHandler;
+import com.example.storage.model.RedisData;
 import io.vertx.core.AbstractVerticle;
-import io.vertx.core.AsyncResult;
-import io.vertx.core.Handler;
 import io.vertx.core.Promise;
-import io.vertx.core.json.Json;
-import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
-import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 
 public class ApiVerticle extends AbstractVerticle {
@@ -20,6 +17,7 @@ public class ApiVerticle extends AbstractVerticle {
 	@Override
 	public void start(Promise<Void> startPromise) {
 		initHandler();
+		vertx.eventBus().registerDefaultCodec(RedisData.class, new GenericCodec<>(RedisData.class));
 
 		vertx.createHttpServer()
 			.requestHandler(initAndGetRouter())

@@ -35,6 +35,9 @@ dependencies {
 	implementation("io.vertx:vertx-web-validation:4.0.2")
 	implementation("io.vertx:vertx-json-schema:4.0.2")
 	implementation("io.vertx:vertx-redis-client")
+	implementation("org.projectlombok:lombok:1.18.16")
+	implementation("com.fasterxml.jackson.core:jackson-databind")
+	annotationProcessor("org.projectlombok:lombok:1.18.16")
 	testImplementation("io.vertx:vertx-junit5")
 	testImplementation("org.junit.jupiter:junit-jupiter:$junitJupiterVersion")
 }

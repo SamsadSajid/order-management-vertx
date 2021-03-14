@@ -1,9 +1,11 @@
 package com.example.storage.handler;
 
+import com.example.storage.model.Product;
+import com.example.storage.model.RedisData;
 import io.vertx.core.Handler;
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
-import io.vertx.core.json.JsonObject;
+import io.vertx.core.json.Json;
 import io.vertx.ext.web.RoutingContext;
 
 public class GetDataFromStorageHandler implements Handler<RoutingContext> {
@@ -15,15 +17,31 @@ public class GetDataFromStorageHandler implements Handler<RoutingContext> {
 
 		var vertx = context.vertx();
 
-		JsonObject jsonObject = new JsonObject().put("key", context.pathParam("key"));
+		var ja = RedisData.builder()
+			.key(context.pathParam("key"))
+			.object(Product.builder().build())
+			.build();
 
-		vertx.executeBlocking(promise -> vertx.eventBus().<JsonObject>request("fetch.data", jsonObject, reply -> {
+		vertx.executeBlocking(promise -> vertx.eventBus().<RedisData>request("fetch.data", ja, reply -> {
+			logger.info("waiting for reply from fetch.data channel...");
+
+			int statusCode;
+			String data;
 
 			if (reply.succeeded()) {
-				context.response().end(reply.result().body().encode());
+				statusCode = 200;
+				Product product = (Product) reply.result().body().getObject();
+
+				data = Json.encode(product);
 			} else {
-				context.response().setStatusCode(404).end(reply.cause().getMessage());
+				statusCode = 404;
+				data = Json.encode(reply.cause().getMessage());
 			}
+
+			context.response()
+				.setStatusCode(statusCode)
+				.putHeader("content-type", "application/json; charset=utf-8")
+				.end(data);
 		}));
 	}
 }
